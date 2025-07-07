@@ -109,6 +109,8 @@ async def verify_auth_token(
         del auth_tokens[token]
     
     return VerifyTokenResponse(
+        access_token=jwt_token,
+        token_type="bearer",
         user=user,
         session=session,
         device_info=device_info
