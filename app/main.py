@@ -42,8 +42,9 @@ async def startup_event():
     if not webhook_url.startswith("http"):
         webhook_url = f"https://{webhook_url}"
     
-    # Устанавливаем webhook
+    # Инициализируем Telegram Application
     try:
+        await telegram_bot.application.initialize()
         await telegram_bot.application.bot.set_webhook(url=f"{webhook_url}/webhook")
         print(f"✅ Telegram webhook установлен: {webhook_url}/webhook")
     except Exception as e:
