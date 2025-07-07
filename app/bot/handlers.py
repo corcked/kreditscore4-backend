@@ -1,5 +1,5 @@
-import logging
 import os
+import logging
 from telegram import Update, ReplyKeyboardMarkup, KeyboardButton, ReplyKeyboardRemove
 from telegram.ext import ContextTypes
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -44,15 +44,21 @@ async def handle_auth_start(update: Update, context: ContextTypes.DEFAULT_TYPE, 
     # Сохраняем токен в контексте для дальнейшего использования
     context.user_data['auth_token'] = auth_token
     
-    # Проверяем, есть ли пользователь в базе
-    async with async_session() as session:
-        result = await session.execute(select(User).where(User.telegram_id == user.id))
-        existing_user = result.scalar_one_or_none()
+    # Проверяем, есть ли пользователь в базе (с обработкой ошибок)
+    existing_user = None
+    try:
+        async with async_session() as session:
+            result = await session.execute(select(User).where(User.telegram_id == user.id))
+            existing_user = result.scalar_one_or_none()
+    except Exception as e:
+        logger.error(f"Database error in handle_auth_start: {e}")
+        # Продолжаем как для нового пользователя, если БД недоступна
+        existing_user = None
     
     if existing_user:
         # Пользователь уже существует, запрашиваем подтверждение
         message = (
-            f"Привет, {user.first_name}! 👋\n\n"
+            f"Привет, {user.first_name}! ��\n\n"
             "Вы уже зарегистрированы в системе.\n"
             "Для завершения авторизации поделитесь своим контактом."
         )
@@ -71,7 +77,11 @@ async def handle_auth_start(update: Update, context: ContextTypes.DEFAULT_TYPE, 
         one_time_keyboard=True
     )
     
-    await update.message.reply_text(message, reply_markup=keyboard)
+    try:
+        await update.message.reply_text(message, reply_markup=keyboard)
+        logger.info(f"Sent contact request to user {user.id}")
+    except Exception as e:
+        logger.error(f"Error sending message to user {user.id}: {e}")
 
 async def contact_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Обработчик получения контакта пользователя"""
@@ -155,7 +165,7 @@ async def contact_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
 async def help_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Обработчик команды /help"""
     help_text = (
-        "🤖 KreditScore4 Bot\n\n"
+        "�� KreditScore4 Bot\n\n"
         "Этот бот используется для авторизации на сайте KreditScore4.\n\n"
         "📱 Как это работает:\n"
         "1. Нажмите кнопку авторизации на сайте\n"
