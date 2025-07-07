@@ -1,6 +1,6 @@
 import os
 import secrets
-import jwt
+from jose import jwt
 from datetime import datetime, timedelta
 from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.ext.asyncio import AsyncSession
