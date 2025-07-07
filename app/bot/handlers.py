@@ -1,4 +1,5 @@
 import logging
+import os
 from telegram import Update, ReplyKeyboardMarkup, KeyboardButton, ReplyKeyboardRemove
 from telegram.ext import ContextTypes
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -126,8 +127,8 @@ async def contact_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
             # Сохраняем связь токена с пользователем в Redis или временном хранилище
             await save_auth_token(auth_token, db_user.id)
             
-            # Формируем ссылку для возврата на сайт с токеном
-            frontend_url = "https://kreditscore4-production.up.railway.app"
+            # Получаем URL frontend из переменных окружения
+            frontend_url = os.getenv("FRONTEND_URL", "https://kreditscore4-production.up.railway.app")
             return_url = f"{frontend_url}/?auth_token={auth_token}"
             
             success_message = (
