@@ -126,10 +126,16 @@ async def contact_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
             # Сохраняем связь токена с пользователем в Redis или временном хранилище
             await save_auth_token(auth_token, db_user.id)
             
+            # Формируем ссылку для возврата на сайт с токеном
+            frontend_url = "https://kreditscore4-production.up.railway.app"
+            return_url = f"{frontend_url}/?auth_token={auth_token}"
+            
             success_message = (
                 "✅ Отлично! Ваши данные получены.\n\n"
                 "📱 Номер телефона сохранен\n"
-                "🔄 Возвращайтесь на сайт для завершения авторизации\n\n"
+                "🔄 Теперь вернитесь на сайт по ссылке:\n"
+                f"{return_url}\n\n"
+                "Или просто вернитесь в браузер и обновите страницу.\n"
                 "Вы можете закрыть этот чат."
             )
             
@@ -170,4 +176,4 @@ async def save_auth_token(token: str, user_id: int) -> None:
 
 async def get_user_by_auth_token(token: str) -> int:
     """Получение ID пользователя по токену"""
-    return auth_tokens.get(token) 
+    return auth_tokens.get(token)
