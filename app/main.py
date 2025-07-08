@@ -1,13 +1,15 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
 import os
 from alembic.config import Config
 from alembic import command
 from sqlalchemy import create_engine
+import json
 
 from app.api import auth, users
 from app.database import engine, Base
+from app.bot.bot import telegram_bot
 
 # Загружаем переменные окружения
 load_dotenv()
@@ -56,6 +58,42 @@ async def startup_event():
         async with engine.begin() as conn:
             await conn.run_sync(Base.metadata.create_all)
         print("✅ Таблицы созданы через create_all")
+    
+    # Настройка Telegram Bot webhook
+    try:
+        print("🤖 Настраиваем Telegram Bot webhook...")
+        
+        # Получаем URL приложения из переменных окружения
+        webhook_url = os.getenv("WEBHOOK_URL")
+        if not webhook_url:
+            # Пытаемся определить URL из Railway переменных
+            railway_static_url = os.getenv("RAILWAY_STATIC_URL")
+            if railway_static_url:
+                webhook_url = f"https://{railway_static_url}"
+            else:
+                print("⚠️ WEBHOOK_URL не найден в переменных окружения")
+                return
+        
+        # Запускаем бота и устанавливаем webhook
+        await telegram_bot.application.initialize()
+        await telegram_bot.application.start()
+        
+        full_webhook_url = f"{webhook_url}/webhook"
+        await telegram_bot.application.bot.set_webhook(url=full_webhook_url)
+        print(f"✅ Telegram Bot webhook установлен: {full_webhook_url}")
+        
+    except Exception as e:
+        print(f"⚠️ Ошибка при настройке Telegram Bot: {e}")
+
+@app.on_event("shutdown")
+async def shutdown_event():
+    """Корректное завершение работы бота"""
+    try:
+        print("🤖 Останавливаем Telegram Bot...")
+        await telegram_bot.application.stop()
+        print("✅ Telegram Bot остановлен")
+    except Exception as e:
+        print(f"⚠️ Ошибка при остановке Telegram Bot: {e}")
 
 @app.get("/")
 async def root():
@@ -63,4 +101,25 @@ async def root():
 
 @app.get("/health")
 async def health_check():
-    return {"status": "healthy"} 
+    return {"status": "healthy"}
+
+@app.post("/webhook")
+async def telegram_webhook(request: Request):
+    """Обработка webhook от Telegram"""
+    try:
+        # Получаем данные от Telegram
+        update_data = await request.json()
+        
+        # Импортируем Update из telegram для создания объекта обновления
+        from telegram import Update
+        
+        # Создаем объект Update из полученных данных
+        update = Update.de_json(update_data, telegram_bot.application.bot)
+        
+        # Обрабатываем обновление
+        await telegram_bot.application.process_update(update)
+        
+        return {"status": "ok"}
+    except Exception as e:
+        print(f"Ошибка обработки webhook: {e}")
+        return {"status": "error", "message": str(e)} 
