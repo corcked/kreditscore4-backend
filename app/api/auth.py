@@ -1,6 +1,7 @@
 import os
 import secrets
 import jwt
+from jwt.exceptions import PyJWTError, ExpiredSignatureError
 from datetime import datetime, timedelta
 from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -162,9 +163,9 @@ async def logout(
         
         return {"message": "Успешный выход из системы"}
         
-    except jwt.ExpiredSignatureError:
+    except ExpiredSignatureError:
         raise HTTPException(status_code=401, detail="Токен истек")
-    except jwt.JWTError:
+    except PyJWTError:
         raise HTTPException(status_code=401, detail="Неверный токен")
 
 def extract_device_info(user_agent: str) -> dict:

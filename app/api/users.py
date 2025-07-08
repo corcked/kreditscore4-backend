@@ -1,4 +1,5 @@
 import jwt
+from jwt.exceptions import PyJWTError, ExpiredSignatureError
 from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
@@ -69,9 +70,9 @@ async def debug_auth_endpoint(request: Request, db: AsyncSession = Depends(get_d
                 "payload": payload
             }
             
-        except jwt.ExpiredSignatureError:
+        except ExpiredSignatureError:
             return {"error": "Токен истек"}
-        except jwt.JWTError as e:
+        except PyJWTError as e:
             return {"error": f"JWT ошибка: {str(e)}"}
         except Exception as e:
             return {"error": f"Внутренняя ошибка: {str(e)}"}
@@ -121,9 +122,9 @@ async def get_current_user(request: Request, db: AsyncSession = Depends(get_db))
         
         return user
         
-    except jwt.ExpiredSignatureError:
+    except ExpiredSignatureError:
         raise HTTPException(status_code=401, detail="Токен истек")
-    except jwt.JWTError:
+    except PyJWTError:
         raise HTTPException(status_code=401, detail="Неверный токен")
 
 @router.get("/me", response_model=UserSchema)
