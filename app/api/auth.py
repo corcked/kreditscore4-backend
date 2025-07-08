@@ -18,9 +18,26 @@ JWT_SECRET = os.getenv("JWT_SECRET", "your-secret-key-change-in-production")
 JWT_ALGORITHM = "HS256"
 JWT_EXPIRE_HOURS = 24 * 7  # 7 дней
 
+# Временное хранилище для данных займа
+# В продакшене лучше использовать Redis
+loan_data_storage = {}
+
 def get_bot_username():
     """Получение username бота (нужно настроить в переменных окружения)"""
     return os.getenv("TELEGRAM_BOT_USERNAME", "kreditscore4_bot")
+
+async def save_loan_data(auth_token: str, loan_data: dict):
+    """Сохранение данных займа по токену"""
+    loan_data_storage[auth_token] = loan_data
+
+async def get_loan_data(auth_token: str) -> dict:
+    """Получение данных займа по токену"""
+    return loan_data_storage.get(auth_token, {})
+
+async def remove_loan_data(auth_token: str):
+    """Удаление данных займа после использования"""
+    if auth_token in loan_data_storage:
+        del loan_data_storage[auth_token]
 
 @router.post("/telegram", response_model=AuthTokenResponse)
 async def create_auth_token(
@@ -35,6 +52,14 @@ async def create_auth_token(
     
     # Генерируем уникальный токен
     auth_token = secrets.token_urlsafe(32)
+    
+    # Сохраняем данные займа для использования после авторизации
+    await save_loan_data(auth_token, {
+        "loan_amount": request_data.loan_amount,
+        "loan_term": request_data.loan_term,
+        "loan_purpose": request_data.loan_purpose,
+        "monthly_income": request_data.monthly_income
+    })
     
     # Получаем username бота
     bot_username = get_bot_username()
@@ -76,6 +101,23 @@ async def verify_auth_token(
             status_code=404,
             detail="Пользователь не найден"
         )
+    
+    # Получаем данные займа из временного хранилища
+    loan_data = await get_loan_data(token)
+    
+    # Обновляем данные пользователя данными займа
+    if loan_data:
+        user.loan_amount = loan_data.get("loan_amount")
+        user.loan_term = loan_data.get("loan_term")
+        user.loan_purpose = loan_data.get("loan_purpose")
+        user.monthly_income = loan_data.get("monthly_income")
+        
+        # Сохраняем обновленные данные
+        await db.commit()
+        await db.refresh(user)
+        
+        # Удаляем использованные данные займа
+        await remove_loan_data(token)
     
     # Получаем информацию о устройстве
     user_agent = request.headers.get("user-agent", "")
@@ -213,4 +255,4 @@ def get_client_ip(request: Request) -> str:
         return real_ip
     
     # Fallback на client.host
-    return request.client.host if request.client else "unknown" 
+    return request.client.host if request.client else "unknown"
