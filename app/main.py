@@ -35,7 +35,7 @@ frontend_url = os.getenv("FRONTEND_URL")
 if frontend_url and frontend_url not in allowed_origins:
     allowed_origins.append(frontend_url)
 
-print(f"🔧 CORS allowed origins: {allowed_origins}")
+print(f"🔧 CORS настройки: allow_origins=['*'], allow_credentials=False (временно)")
 
 app.add_middleware(
     CORSMiddleware,
