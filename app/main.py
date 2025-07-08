@@ -25,7 +25,9 @@ app = FastAPI(
 allowed_origins = [
     "http://localhost:3000",  # Для разработки
     "https://frontend-production-5830.up.railway.app",  # Production frontend
-    "https://kreditscore4-frontend-production.up.railway.app"  # Альтернативный URL
+    "https://kreditscore4-frontend-production.up.railway.app",  # Альтернативный URL
+    # Добавляем без www версии на всякий случай
+    "https://www.frontend-production-5830.up.railway.app",
 ]
 
 # Добавляем дополнительные origins из переменных окружения если есть
@@ -33,12 +35,25 @@ frontend_url = os.getenv("FRONTEND_URL")
 if frontend_url and frontend_url not in allowed_origins:
     allowed_origins.append(frontend_url)
 
+print(f"🔧 CORS allowed origins: {allowed_origins}")
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=allowed_origins,
     allow_credentials=True,
-    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "HEAD"],
+    allow_headers=[
+        "Accept",
+        "Accept-Language", 
+        "Content-Language",
+        "Content-Type",
+        "Authorization",
+        "X-Requested-With",
+        "Origin",
+        "Access-Control-Request-Method",
+        "Access-Control-Request-Headers",
+    ],
+    expose_headers=["*"],
 )
 
 # Подключение роутеров
