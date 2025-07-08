@@ -21,11 +21,23 @@ app = FastAPI(
 )
 
 # Настройка CORS
+# Получаем разрешенные origins из переменных окружения
+allowed_origins = [
+    "http://localhost:3000",  # Для разработки
+    "https://frontend-production-5830.up.railway.app",  # Production frontend
+    "https://kreditscore4-frontend-production.up.railway.app"  # Альтернативный URL
+]
+
+# Добавляем дополнительные origins из переменных окружения если есть
+frontend_url = os.getenv("FRONTEND_URL")
+if frontend_url and frontend_url not in allowed_origins:
+    allowed_origins.append(frontend_url)
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # В продакшене указать конкретные домены
+    allow_origins=allowed_origins,
     allow_credentials=True,
-    allow_methods=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allow_headers=["*"],
 )
 
