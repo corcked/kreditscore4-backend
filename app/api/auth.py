@@ -123,6 +123,8 @@ async def verify_auth_token(
         del loan_data_storage[token]
     
     return VerifyTokenResponse(
+        access_token=jwt_token,
+        token_type="bearer",
         user=user,
         session=session,
         device_info=device_info

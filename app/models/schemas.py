@@ -67,6 +67,8 @@ class AuthTokenResponse(BaseModel):
     telegram_url: str
 
 class VerifyTokenResponse(BaseModel):
+    access_token: str
+    token_type: str = "bearer"
     user: User
     session: AuthSession
     device_info: dict 
