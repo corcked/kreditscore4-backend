@@ -8,6 +8,12 @@ class UserBase(BaseModel):
     username: Optional[str] = None
     first_name: Optional[str] = None
     last_name: Optional[str] = None
+    
+    # Поля заявки на займ
+    loan_amount: Optional[float] = None
+    loan_term: Optional[int] = None
+    loan_purpose: Optional[str] = None
+    monthly_income: Optional[float] = None
 
 class UserCreate(UserBase):
     pass
@@ -17,6 +23,12 @@ class UserUpdate(BaseModel):
     username: Optional[str] = None
     first_name: Optional[str] = None
     last_name: Optional[str] = None
+    
+    # Поля заявки на займ
+    loan_amount: Optional[float] = None
+    loan_term: Optional[int] = None
+    loan_purpose: Optional[str] = None
+    monthly_income: Optional[float] = None
 
 class User(UserBase):
     model_config = ConfigDict(from_attributes=True)
@@ -49,6 +61,12 @@ class AuthSession(AuthSessionBase):
 class AuthTokenRequest(BaseModel):
     user_agent: Optional[str] = None
     device_info: Optional[str] = None
+    
+    # Данные заявки на займ
+    loan_amount: Optional[float] = None
+    loan_term: Optional[int] = None
+    loan_purpose: Optional[str] = None
+    monthly_income: Optional[float] = None
 
 class AuthTokenResponse(BaseModel):
     auth_token: str

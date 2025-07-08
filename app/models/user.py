@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, DateTime, Text, ForeignKey, Boolean
+from sqlalchemy import Column, Integer, String, DateTime, Text, ForeignKey, Boolean, Float
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
@@ -13,6 +13,13 @@ class User(Base):
     username = Column(String(100), nullable=True)
     first_name = Column(String(100), nullable=True)
     last_name = Column(String(100), nullable=True)
+    
+    # Поля заявки на займ
+    loan_amount = Column(Float, nullable=True)  # Сумма займа
+    loan_term = Column(Integer, nullable=True)  # Срок займа в месяцах
+    loan_purpose = Column(String(100), nullable=True)  # Цель займа
+    monthly_income = Column(Float, nullable=True)  # Ежемесячный доход
+    
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
     
@@ -33,4 +40,4 @@ class AuthSession(Base):
     expires_at = Column(DateTime(timezone=True), nullable=False)
     
     # Связь с пользователем
-    user = relationship("User", back_populates="sessions") 
+    user = relationship("User", back_populates="sessions")
