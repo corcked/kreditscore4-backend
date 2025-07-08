@@ -39,20 +39,10 @@ print(f"🔧 CORS allowed origins: {allowed_origins}")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=allowed_origins,
-    allow_credentials=True,
+    allow_origins=["*"],  # Временно для отладки
+    allow_credentials=False,  # Временно отключено
     allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "HEAD"],
-    allow_headers=[
-        "Accept",
-        "Accept-Language", 
-        "Content-Language",
-        "Content-Type",
-        "Authorization",
-        "X-Requested-With",
-        "Origin",
-        "Access-Control-Request-Method",
-        "Access-Control-Request-Headers",
-    ],
+    allow_headers=["*"],
     expose_headers=["*"],
 )
 
