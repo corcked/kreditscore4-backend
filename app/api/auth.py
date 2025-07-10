@@ -21,7 +21,7 @@ JWT_EXPIRE_HOURS = 24 * 7  # 7 дней
 
 def get_bot_username():
     """Получение username бота (нужно настроить в переменных окружения)"""
-    return os.getenv("TELEGRAM_BOT_USERNAME", "kreditscore4_bot")
+    return os.getenv("TELEGRAM_BOT_USERNAME", "kredit_score_bot")
 
 @router.post("/telegram", response_model=AuthTokenResponse)
 async def create_auth_token(

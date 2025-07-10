@@ -43,7 +43,7 @@ async def init_bot_auth(
     
     auth_token = auth_token_service.create_auth_token(loan_data)
     
-    bot_username = os.getenv("TELEGRAM_BOT_USERNAME", "kreditscore4_bot")
+    bot_username = os.getenv("TELEGRAM_BOT_USERNAME", "kredit_score_bot")
     telegram_url = f"https://t.me/{bot_username}?start={auth_token}"
     
     return BotAuthInitResponse(
