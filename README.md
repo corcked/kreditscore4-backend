@@ -72,3 +72,4 @@ app/
 ├── database.py       # Настройка БД
 └── main.py          # FastAPI приложение
 ```
+# Force cache clear
