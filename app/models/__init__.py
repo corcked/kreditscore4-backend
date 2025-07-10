@@ -1,4 +1,5 @@
 from .user import User, AuthSession
+from .application import LoanApplication, ApplicationStatus
 from .schemas import (
     UserBase, UserCreate, UserUpdate, User as UserSchema,
     AuthSessionBase, AuthSessionCreate, AuthSession as AuthSessionSchema,

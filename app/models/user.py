@@ -14,17 +14,12 @@ class User(Base):
     first_name = Column(String(100), nullable=True)
     last_name = Column(String(100), nullable=True)
     
-    # Поля займа
-    loan_amount = Column(Float, nullable=True)
-    loan_term = Column(Integer, nullable=True)  # в месяцах
-    loan_purpose = Column(String(100), nullable=True)
-    monthly_income = Column(Float, nullable=True)
-    
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
     
-    # Связь с сессиями
+    # Связи
     sessions = relationship("AuthSession", back_populates="user")
+    applications = relationship("LoanApplication", back_populates="user", order_by="desc(LoanApplication.created_at)")
 
 class AuthSession(Base):
     __tablename__ = "auth_sessions"

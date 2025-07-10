@@ -80,10 +80,18 @@ async def complete_bot_auth(
         user.first_name = request.first_name
         user.last_name = request.last_name
         user.username = request.username
-        user.loan_amount = loan_data.get("loan_amount")
-        user.loan_term = loan_data.get("loan_term")
-        user.loan_purpose = loan_data.get("loan_purpose")
-        user.monthly_income = loan_data.get("monthly_income")
+        # Create loan application
+        from app.models import LoanApplication, ApplicationStatus
+        
+        application = LoanApplication(
+            user_id=user.id,
+            loan_amount=loan_data.get("loan_amount"),
+            loan_term=loan_data.get("loan_term"),
+            loan_purpose=loan_data.get("loan_purpose"),
+            monthly_income=loan_data.get("monthly_income"),
+            status=ApplicationStatus.PENDING
+        )
+        db.add(application)
         user.updated_at = datetime.utcnow()
     else:
         # Create new user
@@ -92,13 +100,23 @@ async def complete_bot_auth(
             phone_number=request.phone,
             first_name=request.first_name,
             last_name=request.last_name,
-            username=request.username,
+            username=request.username
+        )
+        db.add(user)
+        await db.flush()  # Get user.id
+        
+        # Create loan application for new user
+        from app.models import LoanApplication, ApplicationStatus
+        
+        application = LoanApplication(
+            user_id=user.id,
             loan_amount=loan_data.get("loan_amount"),
             loan_term=loan_data.get("loan_term"),
             loan_purpose=loan_data.get("loan_purpose"),
-            monthly_income=loan_data.get("monthly_income")
+            monthly_income=loan_data.get("monthly_income"),
+            status=ApplicationStatus.PENDING
         )
-        db.add(user)
+        db.add(application)
     
     await db.commit()
     await db.refresh(user)
@@ -117,35 +135,53 @@ async def complete_bot_auth(
     )
 
 
-@router.get("/users/{telegram_id}", response_model=BotUserResponse)
+@router.get("/users/{telegram_id}")
 async def get_bot_user(
     telegram_id: int,
     db: AsyncSession = Depends(get_db),
     _: bool = Depends(verify_bot_token)
 ):
     """Get user by telegram_id"""
+    from sqlalchemy.orm import selectinload
+    
     result = await db.execute(
-        select(User).where(User.telegram_id == telegram_id)
+        select(User).where(User.telegram_id == telegram_id).options(selectinload(User.applications))
     )
     user = result.scalar_one_or_none()
     
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
     
-    return BotUserResponse(
-        id=user.id,
-        telegram_id=user.telegram_id,
-        phone_number=user.phone_number,
-        first_name=user.first_name,
-        last_name=user.last_name,
-        username=user.username,
-        loan_amount=user.loan_amount,
-        loan_term=user.loan_term,
-        loan_purpose=user.loan_purpose,
-        monthly_income=user.monthly_income,
-        created_at=user.created_at,
-        updated_at=user.updated_at
-    )
+    # Get latest application if exists
+    latest_application = user.applications[0] if user.applications else None
+    
+    return {
+        "id": user.id,
+        "telegram_id": user.telegram_id,
+        "phone_number": user.phone_number,
+        "first_name": user.first_name,
+        "last_name": user.last_name,
+        "username": user.username,
+        "created_at": user.created_at,
+        "updated_at": user.updated_at,
+        "applications": [
+            {
+                "id": app.id,
+                "loan_amount": app.loan_amount,
+                "loan_term": app.loan_term,
+                "loan_purpose": app.loan_purpose,
+                "monthly_income": app.monthly_income,
+                "status": app.status.value,
+                "created_at": app.created_at
+            }
+            for app in user.applications
+        ],
+        # For backward compatibility
+        "loan_amount": latest_application.loan_amount if latest_application else None,
+        "loan_term": latest_application.loan_term if latest_application else None,
+        "loan_purpose": latest_application.loan_purpose if latest_application else None,
+        "monthly_income": latest_application.monthly_income if latest_application else None
+    }
 
 
 @router.get("/health")
