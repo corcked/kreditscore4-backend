@@ -1,5 +1,4 @@
 import os
-import secrets
 import jwt
 from jwt.exceptions import PyJWTError, ExpiredSignatureError
 from datetime import datetime, timedelta
@@ -11,6 +10,7 @@ from app.database import get_db
 from app.models.user import User, AuthSession
 from app.models.schemas import AuthTokenRequest, AuthTokenResponse, VerifyTokenResponse
 from app.bot.handlers import get_user_by_auth_token
+from app.services.auth_service import auth_token_service
 
 router = APIRouter()
 
@@ -34,19 +34,18 @@ async def create_auth_token(
     Возвращает auth_token и ссылку на Telegram Bot
     """
     
-    # Генерируем уникальный токен
-    auth_token = secrets.token_urlsafe(32)
-    
-    # Сохраняем данные займа во временном хранилище
-    from app.bot.handlers import save_loan_data
+    # Создаем токен с данными займа если они есть
+    loan_data = None
     if any([request_data.loan_amount, request_data.loan_term, 
             request_data.loan_purpose, request_data.monthly_income]):
-        await save_loan_data(auth_token, {
+        loan_data = {
             "loan_amount": request_data.loan_amount,
             "loan_term": request_data.loan_term,
             "loan_purpose": request_data.loan_purpose,
             "monthly_income": request_data.monthly_income
-        })
+        }
+    
+    auth_token = auth_token_service.create_auth_token(loan_data)
     
     # Получаем username бота
     bot_username = get_bot_username()
@@ -58,6 +57,63 @@ async def create_auth_token(
         auth_token=auth_token,
         telegram_url=telegram_url
     )
+
+
+@router.post("/telegram/v2", response_model=AuthTokenResponse)
+async def create_auth_token_v2(
+    request_data: AuthTokenRequest,
+    request: Request,
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Создание токена авторизации для Telegram (новая версия)
+    Использует Bot API вместо прямого взаимодействия с временными хранилищами
+    """
+    import aiohttp
+    import os
+    
+    # Подготовка данных для Bot API
+    loan_data = {
+        "loan_amount": request_data.loan_amount,
+        "loan_term": request_data.loan_term,
+        "loan_purpose": request_data.loan_purpose,
+        "monthly_income": request_data.monthly_income
+    }
+    
+    # Вызов Bot API для создания токена
+    bot_api_key = os.getenv("BOT_API_KEY", "default-bot-api-key-change-in-production")
+    base_url = request.url.scheme + "://" + request.url.netloc
+    
+    try:
+        async with aiohttp.ClientSession() as session:
+            async with session.post(
+                f"{base_url}/api/bot/auth/init",
+                headers={"X-Bot-Token": bot_api_key},
+                json=loan_data
+            ) as response:
+                if response.status == 200:
+                    data = await response.json()
+                    return AuthTokenResponse(
+                        auth_token=data["auth_token"],
+                        telegram_url=data["telegram_url"]
+                    )
+                else:
+                    raise HTTPException(
+                        status_code=500,
+                        detail="Failed to create auth token via Bot API"
+                    )
+    except Exception as e:
+        # Fallback to old method if Bot API fails
+        loan_data_for_service = {k: v for k, v in loan_data.items() if v is not None}
+        auth_token = auth_token_service.create_auth_token(loan_data_for_service if loan_data_for_service else None)
+        
+        bot_username = get_bot_username()
+        telegram_url = f"https://t.me/{bot_username}?start={auth_token}"
+        
+        return AuthTokenResponse(
+            auth_token=auth_token,
+            telegram_url=telegram_url
+        )
 
 @router.get("/verify/{token}", response_model=VerifyTokenResponse)
 async def verify_auth_token(
@@ -116,11 +172,7 @@ async def verify_auth_token(
     await db.refresh(session)
     
     # Удаляем использованный auth_token и данные займа
-    from app.bot.handlers import auth_tokens, loan_data_storage
-    if token in auth_tokens:
-        del auth_tokens[token]
-    if token in loan_data_storage:
-        del loan_data_storage[token]
+    auth_token_service.cleanup_auth_token(token)
     
     return VerifyTokenResponse(
         access_token=jwt_token,

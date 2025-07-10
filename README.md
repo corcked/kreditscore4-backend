@@ -48,12 +48,19 @@ curl -X POST "https://api.telegram.org/bot<BOT_TOKEN>/setWebhook" \
 
 ## 📋 API Endpoints
 
+### Public Endpoints
 - `GET /` - health check
 - `POST /api/auth/telegram` - создание токена авторизации
 - `GET /api/auth/verify/{token}` - проверка токена
 - `POST /api/auth/logout` - выход
 - `GET /api/users/me` - данные пользователя
 - `GET /api/users/me/sessions` - активные сессии
+
+### Bot Service Endpoints (требуют X-Bot-Token header)
+- `GET /api/bot/health` - health check для бота
+- `POST /api/bot/auth/init` - инициализация авторизации
+- `POST /api/bot/auth/complete` - завершение авторизации
+- `GET /api/bot/users/{telegram_id}` - получение пользователя
 
 ## 🔧 Структура проекта
 

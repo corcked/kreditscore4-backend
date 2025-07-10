@@ -71,4 +71,42 @@ class VerifyTokenResponse(BaseModel):
     token_type: str = "bearer"
     user: User
     session: AuthSession
-    device_info: dict 
+    device_info: dict
+
+# Bot API schemas
+class BotAuthInitRequest(BaseModel):
+    loan_amount: Optional[float] = None
+    loan_term: Optional[int] = None
+    loan_purpose: Optional[str] = None
+    monthly_income: Optional[float] = None
+
+class BotAuthInitResponse(BaseModel):
+    auth_token: str
+    telegram_url: str
+
+class BotAuthCompleteRequest(BaseModel):
+    auth_token: str
+    telegram_id: int
+    phone: str
+    first_name: Optional[str] = None
+    last_name: Optional[str] = None
+    username: Optional[str] = None
+
+class BotAuthCompleteResponse(BaseModel):
+    success: bool
+    frontend_return_url: str
+    user_id: int
+
+class BotUserResponse(BaseModel):
+    id: int
+    telegram_id: int
+    phone_number: Optional[str] = None
+    first_name: Optional[str] = None
+    last_name: Optional[str] = None
+    username: Optional[str] = None
+    loan_amount: Optional[float] = None
+    loan_term: Optional[int] = None
+    loan_purpose: Optional[str] = None
+    monthly_income: Optional[float] = None
+    created_at: datetime
+    updated_at: Optional[datetime] = None 

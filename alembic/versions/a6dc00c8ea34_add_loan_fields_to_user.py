@@ -19,11 +19,43 @@ depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
-    # Add loan fields to users table
-    op.add_column('users', sa.Column('loan_amount', sa.Float(), nullable=True))
-    op.add_column('users', sa.Column('loan_term', sa.Integer(), nullable=True))
-    op.add_column('users', sa.Column('loan_purpose', sa.String(100), nullable=True))
-    op.add_column('users', sa.Column('monthly_income', sa.Float(), nullable=True))
+    # Add loan fields to users table (safe for repeated execution)
+    from sqlalchemy import text
+    
+    # Получаем соединение
+    connection = op.get_bind()
+    
+    # Проверяем и добавляем loan_amount если не существует
+    result = connection.execute(text("""
+        SELECT column_name FROM information_schema.columns 
+        WHERE table_name='users' AND column_name='loan_amount'
+    """))
+    if not result.fetchone():
+        op.add_column('users', sa.Column('loan_amount', sa.Float(), nullable=True))
+    
+    # Проверяем и добавляем loan_term если не существует
+    result = connection.execute(text("""
+        SELECT column_name FROM information_schema.columns 
+        WHERE table_name='users' AND column_name='loan_term'
+    """))
+    if not result.fetchone():
+        op.add_column('users', sa.Column('loan_term', sa.Integer(), nullable=True))
+    
+    # Проверяем и добавляем loan_purpose если не существует
+    result = connection.execute(text("""
+        SELECT column_name FROM information_schema.columns 
+        WHERE table_name='users' AND column_name='loan_purpose'
+    """))
+    if not result.fetchone():
+        op.add_column('users', sa.Column('loan_purpose', sa.String(100), nullable=True))
+    
+    # Проверяем и добавляем monthly_income если не существует
+    result = connection.execute(text("""
+        SELECT column_name FROM information_schema.columns 
+        WHERE table_name='users' AND column_name='monthly_income'
+    """))
+    if not result.fetchone():
+        op.add_column('users', sa.Column('monthly_income', sa.Float(), nullable=True))
 
 
 def downgrade() -> None:
