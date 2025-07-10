@@ -9,7 +9,7 @@ from sqlalchemy import select
 from app.database import get_db
 from app.models.user import User, AuthSession
 from app.models.schemas import AuthTokenRequest, AuthTokenResponse, VerifyTokenResponse
-from app.bot.handlers import get_user_by_auth_token
+# from app.bot.handlers import get_user_by_auth_token  # УДАЛЕНО - перенесено в auth_service
 from app.services.auth_service import auth_token_service
 
 router = APIRouter()
@@ -126,8 +126,8 @@ async def verify_auth_token(
     Если токен валиден, создает сессию и возвращает данные пользователя
     """
     
-    # Получаем ID пользователя по токену из Telegram Bot
-    user_id = await get_user_by_auth_token(token)
+    # Получаем ID пользователя по токену из auth service
+    user_id = auth_token_service.get_user_by_token(token)
     
     if not user_id:
         raise HTTPException(
