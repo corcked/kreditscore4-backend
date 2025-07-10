@@ -2,9 +2,9 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
 import os
-# from alembic.config import Config
-# from alembic import command
-# from sqlalchemy import create_engine
+from alembic.config import Config
+from alembic import command
+from sqlalchemy import create_engine
 import json
 
 from app.api import auth, users, bot
@@ -55,28 +55,28 @@ app.include_router(bot.router, prefix="/api/bot", tags=["bot"])
 async def startup_event():
     """Применение миграций и создание таблиц при запуске"""
     try:
-        # ВРЕМЕННО ОТКЛЮЧЕНО: Применяем Alembic миграции из-за проблем с дублированием колонок
-        # print("🔄 Применяем миграции...")
-        # alembic_cfg = Config("alembic.ini")
-        # 
-        # # Получаем DATABASE_URL и конвертируем для sync SQLAlchemy
-        # database_url = os.getenv("DATABASE_URL")
-        # if database_url and "postgresql+asyncpg://" in database_url:
-        #     sync_url = database_url.replace("postgresql+asyncpg://", "postgresql://")
-        #     alembic_cfg.set_main_option("sqlalchemy.url", sync_url)
-        # 
-        # command.upgrade(alembic_cfg, "head")
-        # print("✅ Миграции применены успешно!")
+        # Применяем Alembic миграции
+        print("🔄 Применяем миграции...")
+        alembic_cfg = Config("alembic.ini")
         
-        # Создаем таблицы напрямую через SQLAlchemy
-        print("🔄 Создаем таблицы через create_all...")
+        # Получаем DATABASE_URL и конвертируем для sync SQLAlchemy
+        database_url = os.getenv("DATABASE_URL")
+        if database_url and "postgresql+asyncpg://" in database_url:
+            sync_url = database_url.replace("postgresql+asyncpg://", "postgresql://")
+            alembic_cfg.set_main_option("sqlalchemy.url", sync_url)
+        
+        command.upgrade(alembic_cfg, "head")
+        print("✅ Миграции применены успешно!")
+        
+        # Создаем таблицы напрямую через SQLAlchemy (если их еще нет)
+        print("🔄 Проверяем таблицы через create_all...")
         async with engine.begin() as conn:
             await conn.run_sync(Base.metadata.create_all)
-        print("✅ Таблицы созданы через create_all")
+        print("✅ Таблицы проверены")
         
     except Exception as e:
-        print(f"⚠️ Ошибка при создании таблиц: {e}")
-        print("🔄 Пробуем создать таблицы повторно...")
+        print(f"⚠️ Ошибка при применении миграций: {e}")
+        print("🔄 Пробуем создать таблицы через create_all...")
         
         # Fallback: создаем таблицы обычным способом
         async with engine.begin() as conn:
